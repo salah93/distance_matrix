@@ -5,14 +5,21 @@ from invisibleroads_macros.disk import make_folder
 from os.path import join
 from pandas import DataFrame
 
-def run(target_folder, origins_path, destinations_path, mode):
-    log_path = join(target_folder, 'log_results.txt')
-    csv_path = join(target_folder, 'results.csv')
 
+def run(target_folder, origins_path, destinations_path, mode):
+    csv_path = join(target_folder, 'results.csv')
+    log_path = join(target_folder, 'log_results.txt')
+    # Input retrieval
     origins = load_unique_lines(origins_path)
     destinations = load_unique_lines(destinations_path)
+
+    # Use google's distancematrix api
     url = "https://maps.googleapis.com/maps/api/distancematrix/json?"
-    url_params = {"origins": "|".join(origins), "mode": mode, "destinations": "|".join(destinations), "language": "en-EN", "units": "imperial"}
+    url_params = {"origins": "|".join(origins),
+            "mode": mode,
+            "destinations": "|".join(destinations),
+            "language": "en-EN",
+            "units": "imperial"}
     url += urllib.urlencode(url_params)
     url_output = urllib.urlopen(url)
     json_result = json.load(url_output)
@@ -20,32 +27,41 @@ def run(target_folder, origins_path, destinations_path, mode):
     # TODO: Check status of each output -> result.rows[i].elements[i].status
     origin_addresses = json_result['origin_addresses']
     destination_addresses = json_result['destination_addresses']
-    origin_stats = zip(origin_addresses, json_result['rows'])
-    duration_results = {}
+    origin_to_destination_stats = zip(origin_addresses, json_result['rows'])
+    duration_results = []
     log = []
-    for base, base_info in origin_stats:
-        duration_results[base] = []
-        log.append("base: {0}".format(str(base)))
-        destinations = zip(destination_addresses, base_info['elements'])
-        for dest, dest_stats in destinations:
-            log.append("duration to {0}: {1}".format(
-                dest, dest_stats['duration']['value']))
-            duration_results[base].append(dest_stats['duration']['value'])
-        total_duration = sum([destination['duration']['value'] 
-            for destination in base_info['elements']])
-        log.append("total duration from {0}: {1}\n".format(base, total_duration))
-        duration_results[base].append(total_duration)
-    # TODO: find min duration
-    #min_duration = 
-    log_string = "\n".join(log)
-    with open(log_path,'w') as f:
-        f.write(log_string)
+    for lodging_name, lodging_info in origin_to_destination_stats:
+        # get duration to each destination from current lodging
+        curr_time = [destination['duration']['value']
+            for destination in lodging_info['elements']]
+        total_duration = sum(curr_time)
+        curr_time.append(total_duration)
+        capture_output(log, lodging_name, zip(destination_addresses, curr_time))
+
+        # Rank lodgings by minimum total_duration
+        for i, old_lodging_and_time in enumerate(duration_results):
+            old_time = old_lodging_and_time[1]
+            # total_duration is located at end of each list
+            if curr_time[-1] < old_time[-1]:
+                duration_results.insert(i, (lodging_name, curr_time))
+                break
+        else:
+            duration_results.append((lodging_name, curr_time))
+
+    # Output results
+    log_output = "\n".join(log)
+    print(log_output)
+    with open(log_path, 'w') as f:
+        f.write(log_output)
     destination_addresses.append('TOTAL')
-    results_table = DataFrame(duration_results, index=destination_addresses)
+    results_table = DataFrame(index=destination_addresses)
+    # Maintain order of list
+    for name, time in duration_results:
+        results_table[name] = time
     results_table.to_csv(csv_path)
 
+    # Required print statement for crosscompute
     print("results_table_path = " + csv_path)
-    print("log_text_path = " + log_path)
 
 def load_unique_lines(source_path):
     if not source_path:
@@ -59,15 +75,22 @@ def normalize_line(x):
     x = x.rstrip(',;')
     return x.strip()
 
+def capture_output(log, lodging_name, zip_list):
+    log.append("\nLodging: {0}".format(lodging_name))
+    log.append("{:50} | {:5}".format("Destination", "Time(s)"))
+    log.append("-"*50)
+    for destination, time in zip_list:
+        log.append("{:50} | {:5}".format(destination, time))
+
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--target_folder', nargs='?', default='results',
             type=make_folder, metavar='FOLDER')
-    parser.add_argument('--origins_text_path', '-O', 
+    parser.add_argument('--origins_text_path', '-O',
             type=str, metavar='PATH', required=True)
-    parser.add_argument('--destinations_text_path', '-D', 
+    parser.add_argument('--destinations_text_path', '-D',
             type=str, metavar='PATH', required=True)
-    parser.add_argument('--mode_text_path', '-M', 
+    parser.add_argument('--mode_text_path', '-M',
             type=str, metavar='PATH', default='driving', choices=['driving', 'walking', 'cycling'])
     args = parser.parse_args()
     run(
