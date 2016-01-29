@@ -54,10 +54,8 @@ def run(target_folder, origins_path, destinations_path, mode):
     with open(log_path, 'w') as f:
         f.write(log_output)
     destination_addresses.append('TOTAL')
-    results_table = DataFrame(index=destination_addresses)
-    # Maintain order of list
-    for name, time in duration_results:
-        results_table[name] = time
+    results_table = DataFrame.from_items(duration_results)
+    results_table.index = destination_addresses
     results_table.to_csv(csv_path)
 
     # Required print statement for crosscompute
