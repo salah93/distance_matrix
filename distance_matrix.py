@@ -9,7 +9,7 @@ from pandas import DataFrame
 def run(target_folder, origins_path, destinations_path, mode):
     csv_path = join(target_folder, 'results.csv')
     log_path = join(target_folder, 'log_results.txt')
-    # Input retrieval
+
     origins = load_unique_lines(origins_path)
     destinations = load_unique_lines(destinations_path)
 
@@ -36,6 +36,7 @@ def run(target_folder, origins_path, destinations_path, mode):
             for destination in lodging_info['elements']]
         total_duration = sum(curr_time)
         curr_time.append(total_duration)
+        # Log information
         capture_output(log, lodging_name, zip(destination_addresses, curr_time))
 
         # Rank lodgings by minimum total_duration
@@ -59,7 +60,8 @@ def run(target_folder, origins_path, destinations_path, mode):
     results_table.to_csv(csv_path)
 
     # Required print statement for crosscompute
-    print("results_table_path = " + csv_path)
+    print("results_table_path = {0}".format(csv_path))
+    print("results_text_path = {0}".format(log_path))
 
 def load_unique_lines(source_path):
     if not source_path:
