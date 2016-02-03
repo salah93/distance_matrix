@@ -1,3 +1,4 @@
+import geopy
 import json
 import urllib
 from argparse import ArgumentParser
@@ -5,10 +6,11 @@ from invisibleroads_macros.disk import make_folder
 from os.path import join
 from pandas import DataFrame
 
-
+# make a table that ranks from least total time to most listing only lodgings and total time in addition to existing table
 def run(target_folder, origins_path, destinations_path, mode):
     csv_path = join(target_folder, 'results.csv')
     log_path = join(target_folder, 'log_results.txt')
+    geomap_path = join(target_folder, 'geomap.csv')
 
     origins = load_unique_lines(origins_path)
     destinations = load_unique_lines(destinations_path)
@@ -28,6 +30,26 @@ def run(target_folder, origins_path, destinations_path, mode):
     origin_addresses = json_result['origin_addresses']
     destination_addresses = json_result['destination_addresses']
     origin_to_destination_stats = zip(origin_addresses, json_result['rows'])
+    
+    google_geo = geopy.GoogleV3()
+    coordinates = [google_geo.geocode(address) 
+            for address in origin_addresses]
+    coordinates.extend([google_geo.geocode(address)
+            for address in destination_addresses])
+    fillcolor = ['red' for i in origin_addresses]
+    fillcolor.extend(['blue' for i in destination_addresses])
+    radius_in_pixels = [20 for i in coordinates]
+    names = [name for name in origin_addresses]
+    names.extend([name for name in destination_addresses])
+    
+    geomap_df = DataFrame()
+    geomap_df['name'] = names 
+    geomap_df['latitude'] = [coord.latitude for coord in coordinates]
+    geomap_df['longitude'] = [coord.longitude for coord in coordinates]
+    geomap_df['fill color'] = fillcolor
+    geomap_df['radius in pixels'] = radius_in_pixels
+    geomap_df.to_csv(geomap_path, index=False)
+
     duration_results = []
     log = []
     for lodging_name, lodging_info in origin_to_destination_stats:
@@ -37,6 +59,7 @@ def run(target_folder, origins_path, destinations_path, mode):
         total_duration = sum(curr_time)
         curr_time.append(total_duration)
         # Log information
+        # TODO: rank text
         capture_output(log, lodging_name, zip(destination_addresses, curr_time))
 
         # Rank lodgings by minimum total_duration
@@ -62,6 +85,7 @@ def run(target_folder, origins_path, destinations_path, mode):
     # Required print statement for crosscompute
     print("results_table_path = {0}".format(csv_path))
     print("results_text_path = {0}".format(log_path))
+    print("points_geotable_path = {0}".format(geomap_path))
 
 def load_unique_lines(source_path):
     if not source_path:
