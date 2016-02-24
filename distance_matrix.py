@@ -6,9 +6,11 @@ from invisibleroads_macros.disk import make_folder
 from os.path import join
 from pandas import DataFrame
 
-# make a table that ranks from least total time to most listing only lodgings and total time in addition to existing table
+# make a table that ranks from least total time to most listing only 
+#   lodgings and total time in addition to existing table
 def run(target_folder, origins_path, destinations_path, mode):
-    csv_path = join(target_folder, 'results.csv')
+    results_path = join(target_folder, 'results.csv')
+    rankings_path = join(target_folder, 'rankings.csv')
     log_path = join(target_folder, 'log_results.txt')
     geomap_path = join(target_folder, 'geomap.csv')
 
@@ -43,7 +45,7 @@ def run(target_folder, origins_path, destinations_path, mode):
     names.extend([name for name in destination_addresses])
     
     geomap_df = DataFrame()
-    geomap_df['name'] = names 
+    geomap_df['name'] = names
     geomap_df['latitude'] = [coord.latitude for coord in coordinates]
     geomap_df['longitude'] = [coord.longitude for coord in coordinates]
     geomap_df['fill color'] = fillcolor
@@ -58,9 +60,6 @@ def run(target_folder, origins_path, destinations_path, mode):
             for destination in lodging_info['elements']]
         total_duration = sum(curr_time)
         curr_time.append(total_duration)
-        # Log information
-        # TODO: rank text
-        capture_output(log, lodging_name, zip(destination_addresses, curr_time))
 
         # Rank lodgings by minimum total_duration
         for i, old_lodging_and_time in enumerate(duration_results):
@@ -73,6 +72,8 @@ def run(target_folder, origins_path, destinations_path, mode):
             duration_results.append((lodging_name, curr_time))
 
     # Output results
+    log.append("Rankings:")
+    log.extend([str((origin, time[-1])) for origin, time in duration_results])
     log_output = "\n".join(log)
     print(log_output)
     with open(log_path, 'w') as f:
@@ -80,10 +81,15 @@ def run(target_folder, origins_path, destinations_path, mode):
     destination_addresses.append('TOTAL')
     results_table = DataFrame.from_items(duration_results)
     results_table.index = destination_addresses
-    results_table.to_csv(csv_path)
+    results_table.to_csv(results_path)
+
+    rankings_table = DataFrame(index=[x[0] for x in duration_results])
+    rankings_table['total time'] = [x[1][-1] for x in duration_results]
+    rankings_table.to_csv(rankings_path)
 
     # Required print statement for crosscompute
-    print("results_table_path = {0}".format(csv_path))
+    print("results_table_path = {0}".format(results_path))
+    print("rankings_table_path = {0}".format(rankings_path))
     print("results_text_path = {0}".format(log_path))
     print("points_geotable_path = {0}".format(geomap_path))
 
@@ -99,13 +105,6 @@ def normalize_line(x):
     x = x.rstrip(',;')
     return x.strip()
 
-def capture_output(log, lodging_name, zip_list):
-    log.append("\nLodging: {0}".format(lodging_name))
-    log.append("{:50} | {:5}".format("Destination", "Time(s)"))
-    log.append("-"*50)
-    for destination, time in zip_list:
-        log.append("{:50} | {:5}".format(destination, time))
-
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--target_folder', nargs='?', default='results',
@@ -115,7 +114,8 @@ if __name__ == '__main__':
     parser.add_argument('--destinations_text_path', '-D',
             type=str, metavar='PATH', required=True)
     parser.add_argument('--mode_text_path', '-M',
-            type=str, metavar='PATH', default='driving', choices=['driving', 'walking', 'cycling'])
+            type=str, metavar='PATH', default='driving',
+            choices=['driving', 'walking', 'cycling'])
     args = parser.parse_args()
     run(
         args.target_folder,
