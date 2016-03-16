@@ -6,8 +6,9 @@ from invisibleroads_macros.disk import make_folder
 from os.path import join
 from pandas import DataFrame
 
-# make a table that ranks from least total time to most listing only 
-#   lodgings and total time in addition to existing table
+
+# make a table that ranks from least total time to most listing only
+# lodgings and total time in addition to existing table
 def run(target_folder, origins_path, destinations_path, mode):
     results_path = join(target_folder, 'results.csv')
     rankings_path = join(target_folder, 'rankings.csv')
@@ -20,10 +21,10 @@ def run(target_folder, origins_path, destinations_path, mode):
     # Use google's distancematrix api
     url = "https://maps.googleapis.com/maps/api/distancematrix/json?"
     url_params = {"origins": "|".join(origins),
-            "mode": mode,
-            "destinations": "|".join(destinations),
-            "language": "en-EN",
-            "units": "imperial"}
+                  "mode": mode,
+                  "destinations": "|".join(destinations),
+                  "language": "en-EN",
+                  "units": "imperial"}
     url += urllib.urlencode(url_params)
     url_output = urllib.urlopen(url)
     json_result = json.load(url_output)
@@ -32,18 +33,18 @@ def run(target_folder, origins_path, destinations_path, mode):
     origin_addresses = json_result['origin_addresses']
     destination_addresses = json_result['destination_addresses']
     origin_to_destination_stats = zip(origin_addresses, json_result['rows'])
-    
+
     google_geo = geopy.GoogleV3()
-    coordinates = [google_geo.geocode(address) 
-            for address in origin_addresses]
-    coordinates.extend([google_geo.geocode(address)
-            for address in destination_addresses])
+    coordinates = [google_geo.geocode(address)
+                   for address in origin_addresses]
+    coordinates.extend(google_geo.geocode(address)
+                       for address in destination_addresses)
     fillcolor = ['red' for i in origin_addresses]
     fillcolor.extend(['blue' for i in destination_addresses])
     radius_in_pixels = [20 for i in coordinates]
     names = [name for name in origin_addresses]
     names.extend([name for name in destination_addresses])
-    
+
     geomap_df = DataFrame()
     geomap_df['name'] = names
     geomap_df['latitude'] = [coord.latitude for coord in coordinates]
@@ -57,7 +58,7 @@ def run(target_folder, origins_path, destinations_path, mode):
     for lodging_name, lodging_info in origin_to_destination_stats:
         # get duration to each destination from current lodging
         curr_time = [destination['duration']['value']
-            for destination in lodging_info['elements']]
+                     for destination in lodging_info['elements']]
         total_duration = sum(curr_time)
         curr_time.append(total_duration)
 
@@ -93,6 +94,7 @@ def run(target_folder, origins_path, destinations_path, mode):
     print("results_text_path = {0}".format(log_path))
     print("points_geotable_path = {0}".format(geomap_path))
 
+
 def load_unique_lines(source_path):
     if not source_path:
         return []
@@ -101,6 +103,7 @@ def load_unique_lines(source_path):
         [normalize_line(x) for x in source_text.splitlines()])
     return sorted([x for x in lines if x])
 
+
 def normalize_line(x):
     x = x.rstrip(',;')
     return x.strip()
@@ -108,14 +111,14 @@ def normalize_line(x):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--target_folder', nargs='?', default='results',
-            type=make_folder, metavar='FOLDER')
+                        type=make_folder, metavar='FOLDER')
     parser.add_argument('--origins_text_path', '-O',
-            type=str, metavar='PATH', required=True)
+                        type=str, metavar='PATH', required=True)
     parser.add_argument('--destinations_text_path', '-D',
-            type=str, metavar='PATH', required=True)
+                        type=str, metavar='PATH', required=True)
     parser.add_argument('--mode_text_path', '-M',
-            type=str, metavar='PATH', default='driving',
-            choices=['driving', 'walking', 'cycling'])
+                        type=str, metavar='PATH', default='driving',
+                        choices=['driving', 'walking', 'cycling'])
     args = parser.parse_args()
     run(
         args.target_folder,
