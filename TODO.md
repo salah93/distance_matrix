@@ -1,2 +1,2 @@
-+ use requests library
-+ clean code
++ fix geotable issue
++ more modes of transport
