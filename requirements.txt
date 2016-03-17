@@ -1,5 +1,6 @@
 crosscompute
 crosscompute-text 
 crosscompute-table
+crosscompute-geotable
 invisibleroads_macros
 pandas
