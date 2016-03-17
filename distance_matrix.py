@@ -23,12 +23,14 @@ def run(target_folder, origins_path, destinations_path, mode):
     json = get_json(origins, destinations, mode)
 
     # TODO: Check status of each output -> result.rows[i].elements[i].status
-    origins, destinations = json['origins'], json['destinations']
+    origins, destinations = (json['origin_addresses'],
+                             json['destination_addresses'])
     origin_to_destination_stats = zip(origins, json['rows'])
 
     geomap_table = get_geotable(origins, destinations)
     geomap_table.to_csv(geomap_path, index=False)
-    duration_results, rankings = get_results(origin_to_destination_stats)
+    duration_results, rankings = get_results(origin_to_destination_stats,
+                                             destinations)
     # Output results
     log = [origin + ': ' + str(total_time) for
            origin, total_time in rankings]
@@ -56,10 +58,11 @@ def get_results(origin_stats, destinations):
     for lodging_name, lodging_stats in origin_stats:
         # get duration to each destination from current lodging
         sum_times = 0
-        for (destination, destination_time) in zip(
+        for destination, destination_info in zip(
                 destinations, lodging_stats['elements']):
-            sum_times += destination_time['duration']['value']
-            data.append((lodging_name, destination, destination_time))
+            dest_time = destination_info['duration']['value']
+            sum_times += dest_time
+            data.append((lodging_name, destination, dest_time))
         rankings.append((lodging_name, sum_times))
     rankings = sorted(rankings, key=(lambda time: time[1]))
     return (data, rankings)
