@@ -1,4 +1,5 @@
 import datetime
+import os
 
 
 class ToolError(Exception):
@@ -29,7 +30,7 @@ def get_date_ranges(from_date, to_date, interval_in_years):
 def load_unique_lines(source_path):
     if not source_path:
         return []
-    source_text = open(source_path, 'rt').read().strip()
+    source_text = open(source_path, 'r').read().strip()
     lines = set((normalize_line(x) for x in source_text.splitlines()))
     return sorted(filter(lambda x: x, lines))
 
@@ -38,3 +39,16 @@ def normalize_line(x):
     x = x.replace(',', '')
     x = x.replace(';', '')
     return x.strip()
+
+
+def parse_date(string):
+    return datetime.datetime.strptime(string, '%m/%d/%Y')
+
+
+def clear_dir(dirname, remdir=False):
+    if not os.path.exists(dirname):
+        raise OSError("directory doesn't exist")
+    for filename in os.listdir(dirname):
+        os.remove(os.path.join(dirname, filename))
+    if remdir:
+        os.rmdir(dirname)

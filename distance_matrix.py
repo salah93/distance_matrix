@@ -52,6 +52,7 @@ def run(target_folder, origins_path, destinations_path, mode):
     print("rankings_table_path = {0}".format(rankings_path))
     print("results_table_path = {0}".format(results_path))
     print("results_text_path = {0}".format(log_path))
+    return (geomap_table, rankings_table)
 
 
 def get_results(origin_stats, destinations):
@@ -86,16 +87,20 @@ def get_json(origins, destinations, mode):
 def get_geotable(origins, destinations):
     google_geo = geopy.GoogleV3()
     coordinates = [(address,
-                   google_geo.geocode(address).latitude,
-                   google_geo.geocode(address).longitude,
-                   '20') for address in origins + destinations]
-    fill_color = (('red ' * len(origins) + 'blue ' * len(destinations))
-                  .rstrip().split(' '))
+                    google_geo.geocode(address).latitude,
+                    google_geo.geocode(address).longitude,
+                    'red',
+                    '20') for address in origins]
+    coordinates.extend([(address,
+                         google_geo.geocode(address).latitude,
+                         google_geo.geocode(address).longitude,
+                         'blue',
+                         '10') for address in destinations])
     geomap_table = DataFrame(coordinates, columns=['name',
                                                    'latitude',
-                                                   'longitutde',
+                                                   'longitude',
+                                                   'fill color',
                                                    'radius in pixels'])
-    geomap_table['fill color'] = fill_color
     return geomap_table
 
 
