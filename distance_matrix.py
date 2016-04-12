@@ -1,10 +1,9 @@
 import geopy
 import requests
-# include your api key
-from api_keys import distance_matrix_key as key
 from argparse import ArgumentParser
 from invisibleroads_macros.disk import make_folder
 from load_lines import load_unique_lines
+from os import environ
 from os.path import join
 from pandas import DataFrame
 
@@ -79,7 +78,7 @@ def get_json(origins, destinations, mode):
                   "destinations": "|".join(destinations),
                   "language": "en-EN",
                   "units": "imperial",
-                  "key": key}
+                  "key": environ['GOOGLE_KEY']}
     resp = requests.get(url, params=url_params)
     return resp.json()
 
