@@ -1,4 +1,5 @@
 crosscompute
 crosscompute-types
+geopy
 invisibleroads-macros
 pandas

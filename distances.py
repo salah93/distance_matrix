@@ -1,11 +1,13 @@
-import geopy
-import requests
 from argparse import ArgumentParser
-from invisibleroads_macros.disk import make_folder
-from load_lines import load_unique_lines
 from os import environ
 from os.path import join
+
+import geopy
+import requests
+from invisibleroads_macros.disk import make_folder
 from pandas import DataFrame
+
+from load_lines import load_unique_lines
 
 
 def run(target_folder, origins_path, destinations_path, mode):
@@ -21,12 +23,12 @@ def run(target_folder, origins_path, destinations_path, mode):
     origins = load_unique_lines(origins_path)
     destinations = load_unique_lines(destinations_path)
 
-    json = get_json(origins, destinations, mode)
+    distances = get_distance_matrix(origins, destinations, mode)
 
     # TODO: Check status of each output -> result.rows[i].elements[i].status
-    origins, destinations = (json['origin_addresses'],
-                             json['destination_addresses'])
-    origin_to_destination_stats = zip(origins, json['rows'])
+    origins, destinations = (distances['origin_addresses'],
+                             distances['destination_addresses'])
+    origin_to_destination_stats = zip(origins, distances['rows'])
 
     geomap_table = get_geotable(origins, destinations)
     geomap_table.to_csv(geomap_path, index=False)
@@ -70,7 +72,7 @@ def get_results(origin_stats, destinations):
     return (data, rankings)
 
 
-def get_json(origins, destinations, mode):
+def get_distance_matrix(origins, destinations, mode):
     # Use google's distancematrix api
     url = "https://maps.googleapis.com/maps/api/distancematrix/json?"
     url_params = {"origins": "|".join(origins),
@@ -78,9 +80,12 @@ def get_json(origins, destinations, mode):
                   "destinations": "|".join(destinations),
                   "language": "en-EN",
                   "units": "imperial",
-                  "key": environ['GOOGLE_KEY']}
-    resp = requests.get(url, params=url_params)
-    return resp.json()
+                  "key": 'AIzaSyBhNXrJJKvAj6-h5ceUe769JM-u4olg6Jo'}
+    response = requests.get(url, params=url_params).json()
+    for r in response['rows']:
+        for e in r['elements']:
+            print e['duration']['value']
+    return response
 
 
 def get_geotable(origins, destinations):
@@ -107,16 +112,15 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('--target_folder', nargs='?', default='results',
                         type=make_folder, metavar='FOLDER')
-    parser.add_argument('--origins_text_path', '-O',
+    parser.add_argument('--origins', '-O',
                         type=str, metavar='PATH', required=True)
-    parser.add_argument('--destinations_text_path', '-D',
+    parser.add_argument('--destinations', '-D',
                         type=str, metavar='PATH', required=True)
-    parser.add_argument('--mode_text_path', '-M',
+    parser.add_argument('--mode', '-M',
                         type=str, metavar='PATH', default='driving',
                         choices=['driving', 'walking', 'cycling'])
     args = parser.parse_args()
-    run(
-        args.target_folder,
-        args.origins_text_path,
-        args.destinations_text_path,
-        args.mode_text_path)
+    run(args.target_folder,
+        args.origins,
+        args.destinations,
+        args.mode)
