@@ -3,6 +3,7 @@ from os import environ
 from os.path import join
 
 import geopy
+import maya
 import requests
 from invisibleroads_macros.disk import make_folder
 from pandas import DataFrame
@@ -17,7 +18,9 @@ def get_distance_matrix(origins, destinations, mode):
                   "language": "en-EN",
                   "units": "imperial",
                   "key": 'AIzaSyBhNXrJJKvAj6-h5ceUe769JM-u4olg6Jo'}
-    response = requests.get(url, params=url_params).json()
+    response = requests.get(url, params=url_params)
+    print response.url
+    response = response.json()
     origins, destinations = (response['origin_addresses'],
                              response['destination_addresses'])
     distances = []
@@ -28,7 +31,7 @@ def get_distance_matrix(origins, destinations, mode):
             dest_distances.append((d, r))
             duration = r['duration']['value']
             s += duration
-        distances.append({'name': o, 'total': s, 'distances': dest_distances})
+        distances.append({'name': o, 'total': maya.humanize.naturaldelta(s), 'distances': dest_distances})
     return distances
 
 
@@ -80,7 +83,7 @@ if __name__ == '__main__':
     duration_results = []
     for d in distances:
         for dest_dist in d['distances']:
-            duration_results.append((d['name'], dest_dist[0], dest_dist[1]['duration']['value']))
+            duration_results.append((d['name'], dest_dist[0], dest_dist[1]['duration']['text']))
 
     target_folder = args.target_folder
 
