@@ -57,7 +57,8 @@ def load_unique_lines(source_path):
     if not source_path:
         return []
     with open(source_path, 'r') as f:
-        lines = set((x.strip(', ;\n') for x in f))
+        lines = list(set((x.strip(', ;\n') for x in f)))
+        print lines
     return sorted(filter(lambda x: x, lines))
 
 
