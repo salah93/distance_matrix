@@ -34,7 +34,6 @@ def get_distance_matrix(origins, destinations, mode):
 
 def get_geotable(origins, destinations):
     google_geo = geopy.GoogleV3()
-    print origins
     coordinates = [(address,
                     google_geo.geocode(address).latitude,
                     google_geo.geocode(address).longitude,
@@ -58,7 +57,6 @@ def load_unique_lines(source_path):
         return []
     with open(source_path, 'r') as f:
         lines = list(set((x.strip(', ;\n') for x in f)))
-        print lines
     return sorted(filter(lambda x: x, lines))
 
 
