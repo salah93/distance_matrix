@@ -17,8 +17,8 @@ def get_distance_matrix(origins, destinations, mode):
                   "language": "en-EN",
                   "units": "imperial",
                   "key": environ['DISTANCE_KEY']}
-    response = requests.get(url, params=url_params)
-    response = response.json()
+    response = requests.get(url, params=url_params).json()
+    # get lat, lng from request
     origins, destinations = (response['origin_addresses'],
                              response['destination_addresses'])
     distances = []
@@ -90,8 +90,12 @@ if __name__ == '__main__':
     target_folder = args.target_folder
 
     geomap_path = join(target_folder, 'geomap.csv')
-    geomap_table = get_geotable(origins, destinations)
-    geomap_table.to_csv(geomap_path, index=False)
+    try:
+        geomap_table = get_geotable(origins, destinations)
+        geomap_table.to_csv(geomap_path, index=False)
+        print("points_geotable_path = {0}".format(geomap_path))
+    except geopy.exc.GeocoderTimedOut as e:
+        print("geomap geocode timeout error: %s" % e.message)
 
     results_path = join(target_folder, 'results.csv')
     columns = ['Lodging Name', 'Destination', 'Duration']
@@ -104,6 +108,5 @@ if __name__ == '__main__':
     rankings_table.to_csv(rankings_path, index=False)
 
     # Required print statement for crosscompute
-    print("points_geotable_path = {0}".format(geomap_path))
     print("rankings_table_path = {0}".format(rankings_path))
     print("results_table_path = {0}".format(results_path))
