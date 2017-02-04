@@ -3,6 +3,7 @@ from os import environ
 from os.path import join
 
 import geopy
+import numpy as np
 import requests
 from invisibleroads_macros.disk import make_folder
 from pandas import DataFrame
@@ -35,24 +36,32 @@ def get_distance_matrix(origins, destinations, mode):
     return distances
 
 
-def get_geotable(origins, destinations):
+def get_geotable(origins_sorted_by_rank, destinations):
     google_geo = geopy.GoogleV3()
+    minimum_pixel_size, max_pixel_size = 10, 50
+    sizes = np.linspace(minimum_pixel_size,
+                        max_pixel_size,
+                        len(origins_sorted_by_rank))[::-1]
+    origins_color = 'red'
+    destinations_color = 'blue'
+    destinations_pixel_size = 10
     coordinates = [(address,
                     google_geo.geocode(address).latitude,
                     google_geo.geocode(address).longitude,
-                    'red',
-                    '20') for address in origins]
+                    origins_color,
+                    str(size)) for address, size in zip(origins_sorted_by_rank,
+                                                        sizes)]
     coordinates.extend([(address,
                          google_geo.geocode(address).latitude,
                          google_geo.geocode(address).longitude,
-                         'blue',
-                         '10') for address in destinations])
-    geomap = DataFrame(coordinates, columns=['name',
-                                             'latitude',
-                                             'longitude',
-                                             'fill color',
-                                             'radius in pixels'])
-    return geomap
+                         destinations_color,
+                         str(destinations_pixel_size))
+                        for address in destinations])
+    return DataFrame(coordinates, columns=['name',
+                                           'latitude',
+                                           'longitude',
+                                           'fill color',
+                                           'radius in pixels'])
 
 
 def load_unique_lines(source_path):
@@ -91,7 +100,8 @@ if __name__ == '__main__':
 
     geomap_path = join(target_folder, 'geomap.csv')
     try:
-        geomap_table = get_geotable(origins, destinations)
+        geomap_table = get_geotable([origin[0] for origin in rankings],
+                                    destinations)
         geomap_table.to_csv(geomap_path, index=False)
         print("points_geotable_path = {0}".format(geomap_path))
     except geopy.exc.GeocoderTimedOut as e:
