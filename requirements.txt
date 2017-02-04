@@ -3,3 +3,4 @@ crosscompute-types
 geopy
 invisibleroads-macros
 pandas
+requests
