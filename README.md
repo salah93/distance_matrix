@@ -1,5 +1,5 @@
 # Distance Calculator
-An app built for [crosscompute]('https://crosscompute.com/docs')
+An app built for [crosscompute](https://crosscompute.com/docs)
 
 use googles distance matrix api to find the location with least distance to all potential destinations
 
