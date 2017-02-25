@@ -17,7 +17,7 @@ def get_distance_matrix(origins, destinations, mode):
                   "destinations": "|".join(destinations),
                   "language": "en-EN",
                   "units": "imperial",
-                  "key": environ['DISTANCE_KEY']}
+                  "key": environ['GOOGLE_DISTANCE_KEY']}
     response = requests.get(url, params=url_params).json()
     # get lat, lng from request
     origins, destinations = (response['origin_addresses'],
